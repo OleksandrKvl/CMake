@@ -1,21 +1,35 @@
 # Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
 # file Copyright.txt or https://cmake.org/licensing for details.
 
-find_package(BISON 3.6.1 REQUIRED)
-find_package(FLEX 2.6.4 REQUIRED)
+find_package(BISON 3.6.1)
+find_package(FLEX 2.6.4)
 
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Source/NewParser/")
+if(FLEX_FOUND AND BISON_FOUND)
+  # generate scanner/parser from .l and .y
+  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Source/NewParser/")
 
-BISON_TARGET(parser "${CMAKE_SOURCE_DIR}/Source/NewParser/parser.y" 
+  BISON_TARGET(
+    parser
+    "${CMAKE_SOURCE_DIR}/Source/NewParser/parser.y" 
     "${CMAKE_BINARY_DIR}/Source/NewParser/parser.cpp"
     DEFINES_FILE "${CMAKE_BINARY_DIR}/Source/NewParser/parser.h")
 
-FLEX_TARGET(
-    scanner "${CMAKE_SOURCE_DIR}/Source/NewParser/scanner.l"
+  FLEX_TARGET(
+    scanner
+    "${CMAKE_SOURCE_DIR}/Source/NewParser/scanner.l"
     "${CMAKE_BINARY_DIR}/Source/NewParser/scanner.cpp"
     DEFINES_FILE "${CMAKE_BINARY_DIR}/Source/NewParser/scanner.h")
 
-ADD_FLEX_BISON_DEPENDENCY(scanner parser)
+  ADD_FLEX_BISON_DEPENDENCY(scanner parser)
+
+  set(NEW_PARSER_GEN_DIR "${CMAKE_BINARY_DIR}/Source/NewParser")
+
+else()
+  # use pre-generated files
+  set(NEW_PARSER_GEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source/NewParser/pre_generated)
+  set(BISON_parser_OUTPUTS ${NEW_PARSER_GEN_DIR}/parser.cpp)
+  set(FLEX_scanner_OUTPUTS ${NEW_PARSER_GEN_DIR}/scanner.cpp)
+endif()
 
 # To ensure maximum portability across various compilers and platforms
 # deactivate any compiler extensions
@@ -113,7 +127,7 @@ include_directories(
   "${CMake_SOURCE_DIR}/Source"
   "${CMake_SOURCE_DIR}/Source/LexerParser"
 
-  "${CMAKE_BINARY_DIR}/Source/NewParser"
+  ${NEW_PARSER_GEN_DIR}
   "${CMAKE_SOURCE_DIR}/Source/NewParser"
   ${CMAKE_ZLIB_INCLUDES}
   ${CMAKE_EXPAT_INCLUDES}
