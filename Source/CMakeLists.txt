@@ -26,7 +26,7 @@ if(FLEX_FOUND AND BISON_FOUND)
 
 else()
   # use pre-generated files
-  set(NEW_PARSER_GEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source/NewParser/pre_generated)
+  set(NEW_PARSER_GEN_DIR ${CMAKE_SOURCE_DIR}/Source/NewParser/pre_generated)
   set(BISON_parser_OUTPUTS ${NEW_PARSER_GEN_DIR}/parser.cpp)
   set(FLEX_scanner_OUTPUTS ${NEW_PARSER_GEN_DIR}/scanner.cpp)
 endif()
