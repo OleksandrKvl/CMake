@@ -7,7 +7,7 @@
 #include "cmListFileArgument.h"
 
 class cmMakefile;
-class cmListFileFunction;
+struct cmListFileFunction;
 
 namespace rpn
 {
