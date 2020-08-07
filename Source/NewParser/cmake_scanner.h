@@ -50,7 +50,7 @@ public:
     void SetInputFile(const std::string& path)
     {
 #ifdef _WIN32
-        wchar_t* wname = cmsysEncoding_DupToWide(name);
+        wchar_t* wname = cmsysEncoding_DupToWide(path.c_str());
         file = _wfopen(wname, L"rb");
         free(wname);
 #else
