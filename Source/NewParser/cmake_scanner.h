@@ -69,7 +69,8 @@ public:
     void SetInputString(
         const std::string& str, const std::string& virtualFileName)
     {
-        stringBuf = yy_scan_bytes(str.c_str(), str.size(), yyscanner);
+        stringBuf = yy_scan_bytes(
+            str.c_str(), static_cast<int>(str.size()), yyscanner);
         scannerCtx.SetInputFileName(virtualFileName);
     }
 
