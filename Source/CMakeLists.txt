@@ -1,6 +1,22 @@
 # Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
 # file Copyright.txt or https://cmake.org/licensing for details.
 
+find_package(BISON 3.6.1 REQUIRED)
+find_package(FLEX 2.6.4 REQUIRED)
+
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Source/NewParser/")
+
+BISON_TARGET(parser "${CMAKE_SOURCE_DIR}/Source/NewParser/parser.y" 
+    "${CMAKE_BINARY_DIR}/Source/NewParser/parser.cpp"
+    DEFINES_FILE "${CMAKE_BINARY_DIR}/Source/NewParser/parser.h")
+
+FLEX_TARGET(
+    scanner "${CMAKE_SOURCE_DIR}/Source/NewParser/scanner.l"
+    "${CMAKE_BINARY_DIR}/Source/NewParser/scanner.cpp"
+    DEFINES_FILE "${CMAKE_BINARY_DIR}/Source/NewParser/scanner.h")
+
+ADD_FLEX_BISON_DEPENDENCY(scanner parser)
+
 # To ensure maximum portability across various compilers and platforms
 # deactivate any compiler extensions
 set(CMAKE_C_EXTENSIONS FALSE)
@@ -96,6 +112,9 @@ include_directories(
   "${CMake_BINARY_DIR}/Source"
   "${CMake_SOURCE_DIR}/Source"
   "${CMake_SOURCE_DIR}/Source/LexerParser"
+
+  "${CMAKE_BINARY_DIR}/Source/NewParser"
+  "${CMAKE_SOURCE_DIR}/Source/NewParser"
   ${CMAKE_ZLIB_INCLUDES}
   ${CMAKE_EXPAT_INCLUDES}
   ${CMAKE_TAR_INCLUDES}
@@ -116,6 +135,11 @@ endif()
 # Sources for CMakeLib
 #
 set(SRCS
+  # new parser
+  "${BISON_parser_OUTPUTS}"
+  "${FLEX_scanner_OUTPUTS}"
+  NewParser/rpn.cpp
+
   # Lexers/Parsers
   LexerParser/cmCommandArgumentLexer.cxx
   LexerParser/cmCommandArgumentLexer.h

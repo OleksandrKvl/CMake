@@ -42,7 +42,7 @@ public:
   bool ArgumentsMatch(cmListFileFunction const& lff,
                       cmMakefile& mf) const override;
 
-  bool Replay(std::vector<cmListFileFunction> functions,
+  bool Replay(std::vector<cmListFileFunctionExpr> functions,
               cmExecutionStatus& inStatus) override;
 
   void SetIterationVarsCount(const std::size_t varsCount)
@@ -60,13 +60,13 @@ private:
     bool Break;
   };
 
-  bool ReplayItems(std::vector<cmListFileFunction> const& functions,
+  bool ReplayItems(std::vector<cmListFileFunctionExpr> const& functions,
                    cmExecutionStatus& inStatus);
 
-  bool ReplayZipLists(std::vector<cmListFileFunction> const& functions,
+  bool ReplayZipLists(std::vector<cmListFileFunctionExpr> const& functions,
                       cmExecutionStatus& inStatus);
 
-  InvokeResult invoke(std::vector<cmListFileFunction> const& functions,
+  InvokeResult invoke(std::vector<cmListFileFunctionExpr> const& functions,
                       cmExecutionStatus& inStatus, cmMakefile& mf);
 
   cmMakefile* Makefile;
@@ -88,21 +88,19 @@ cmForEachFunctionBlocker::~cmForEachFunctionBlocker()
 bool cmForEachFunctionBlocker::ArgumentsMatch(cmListFileFunction const& lff,
                                               cmMakefile& mf) const
 {
-  std::vector<std::string> expandedArguments;
-  mf.ExpandArguments(lff.Arguments, expandedArguments);
-  return expandedArguments.empty() ||
-    expandedArguments.front() == this->Args.front();
+  return lff.Arguments.empty() 
+    || lff.Arguments.front().Value == this->Args.front();
 }
 
 bool cmForEachFunctionBlocker::Replay(
-  std::vector<cmListFileFunction> functions, cmExecutionStatus& inStatus)
+  std::vector<cmListFileFunctionExpr> functions, cmExecutionStatus& inStatus)
 {
   return this->ZipLists ? this->ReplayZipLists(functions, inStatus)
                         : this->ReplayItems(functions, inStatus);
 }
 
 bool cmForEachFunctionBlocker::ReplayItems(
-  std::vector<cmListFileFunction> const& functions,
+  std::vector<cmListFileFunctionExpr> const& functions,
   cmExecutionStatus& inStatus)
 {
   assert("Unexpected number of iteration variables" &&
@@ -137,7 +135,7 @@ bool cmForEachFunctionBlocker::ReplayItems(
 }
 
 bool cmForEachFunctionBlocker::ReplayZipLists(
-  std::vector<cmListFileFunction> const& functions,
+  std::vector<cmListFileFunctionExpr> const& functions,
   cmExecutionStatus& inStatus)
 {
   assert("Unexpected number of iteration variables" &&
@@ -232,16 +230,17 @@ bool cmForEachFunctionBlocker::ReplayZipLists(
 }
 
 auto cmForEachFunctionBlocker::invoke(
-  std::vector<cmListFileFunction> const& functions,
+  std::vector<cmListFileFunctionExpr> const& functions,
   cmExecutionStatus& inStatus, cmMakefile& mf) -> InvokeResult
 {
   InvokeResult result = { true, false };
   // Invoke all the functions that were collected in the block.
-  for (cmListFileFunction const& func : functions) {
+  for (auto const& func : functions) {
     cmExecutionStatus status(mf);
     mf.ExecuteCommand(func, status);
     if (status.GetReturnInvoked()) {
       inStatus.SetReturnInvoked();
+      inStatus.SetReturnValue(status.ReleaseReturnValue());
       result.Break = true;
       break;
     }

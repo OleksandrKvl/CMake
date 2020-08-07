@@ -3,11 +3,14 @@
 #include "cmReturnCommand.h"
 
 #include "cmExecutionStatus.h"
+#include "cmRange.h"
+#include "cmStringAlgorithms.h"
 
 // cmReturnCommand
-bool cmReturnCommand(std::vector<std::string> const&,
+bool cmReturnCommand(std::vector<std::string> const& args,
                      cmExecutionStatus& status)
 {
+  status.SetReturnValue(cmJoin(cmMakeRange(args), ";"));
   status.SetReturnInvoked();
   return true;
 }

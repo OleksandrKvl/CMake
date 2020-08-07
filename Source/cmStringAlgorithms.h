@@ -67,6 +67,25 @@ std::string cmJoin(Range const& rng, cm::string_view separator)
   return os.str();
 }
 
+/** Joins elements of a range with separator into a single string.  */
+template <typename Range, typename UnaryOperation>
+std::string cmJoin(
+  Range const& rng, cm::string_view separator, UnaryOperation op)
+{
+  if (rng.empty()) {
+    return std::string();
+  }
+
+  std::ostringstream os;
+  auto it = rng.begin();
+  auto const end = rng.end();
+  os << op(*it);
+  while (++it != end) {
+    os << separator << op(*it);
+  }
+  return os.str();
+}
+
 /** Extract tokens that are separated by any of the characters in @a sep.  */
 std::vector<std::string> cmTokenize(cm::string_view str, cm::string_view sep);
 

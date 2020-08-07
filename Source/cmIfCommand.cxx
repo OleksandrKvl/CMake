@@ -42,7 +42,7 @@ public:
   bool ArgumentsMatch(cmListFileFunction const& lff,
                       cmMakefile&) const override;
 
-  bool Replay(std::vector<cmListFileFunction> functions,
+  bool Replay(std::vector<cmListFileFunctionExpr> functions,
               cmExecutionStatus& inStatus) override;
 
   std::vector<cmListFileArgument> Args;
@@ -57,13 +57,13 @@ bool cmIfFunctionBlocker::ArgumentsMatch(cmListFileFunction const& lff,
   return lff.Arguments.empty() || lff.Arguments == this->Args;
 }
 
-bool cmIfFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
+bool cmIfFunctionBlocker::Replay(std::vector<cmListFileFunctionExpr> functions,
                                  cmExecutionStatus& inStatus)
 {
   cmMakefile& mf = inStatus.GetMakefile();
   // execute the functions for the true parts of the if statement
   int scopeDepth = 0;
-  for (cmListFileFunction const& func : functions) {
+  for (auto const& func : functions) {
     // keep track of scope depth
     if (func.Name.Lower == "if") {
       scopeDepth++;
@@ -86,11 +86,15 @@ bool cmIfFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
       this->IsBlocking = this->HasRun;
       this->HasRun = true;
       this->ElseSeen = true;
-
+      
       // if trace is enabled, print a (trivially) evaluated "else"
       // statement
       if (!this->IsBlocking && mf.GetCMakeInstance()->GetTrace()) {
-        mf.PrintCommandTrace(func);
+        cmListFileFunction lff;
+        if(!func.rpnExpr.Evaluate(mf, lff)) {
+          return false;
+        }
+        mf.PrintCommandTrace(lff);
       }
     } else if (scopeDepth == 0 && func.Name.Lower == "elseif") {
       if (this->ElseSeen) {
@@ -106,14 +110,24 @@ bool cmIfFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
         this->IsBlocking = true;
       } else {
         // if trace is enabled, print the evaluated "elseif" statement
-        if (mf.GetCMakeInstance()->GetTrace()) {
-          mf.PrintCommandTrace(func);
-        }
-
         std::string errorString;
 
+        cmListFileFunction lff;
+        if(!func.rpnExpr.Evaluate(mf, lff)) {
+          return false;
+        }
+        if (mf.GetCMakeInstance()->GetTrace()) {
+          mf.PrintCommandTrace(lff);
+        }
+
         std::vector<cmExpandedCommandArgument> expandedArguments;
-        mf.ExpandArguments(func.Arguments, expandedArguments);
+        expandedArguments.reserve(lff.Arguments.size());
+        for(const auto& arg: lff.Arguments)
+        {
+          // I'm not sure whether we can move() from func.Arguments
+          const auto quoted = (arg.Delim != cmListFileArgument::Unquoted);
+          expandedArguments.emplace_back(arg.Value, quoted);
+        }
 
         MessageType messType;
 
@@ -146,11 +160,12 @@ bool cmIfFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
     }
 
     // should we execute?
-    else if (!this->IsBlocking) {
+    else if (!this->IsBlocking) {       
       cmExecutionStatus status(mf);
       mf.ExecuteCommand(func, status);
       if (status.GetReturnInvoked()) {
         inStatus.SetReturnInvoked();
+        inStatus.SetReturnValue(status.ReleaseReturnValue());
         return true;
       }
       if (status.GetBreakInvoked()) {
@@ -174,7 +189,12 @@ bool cmIfCommand(std::vector<cmListFileArgument> const& args,
   std::string errorString;
 
   std::vector<cmExpandedCommandArgument> expandedArguments;
-  makefile.ExpandArguments(args, expandedArguments);
+  expandedArguments.reserve(args.size());
+  for(const auto& arg: args)
+  {
+      const auto quoted = (arg.Delim != cmListFileArgument::Unquoted);
+      expandedArguments.emplace_back(arg.Value, quoted);
+  }
 
   MessageType status;
 

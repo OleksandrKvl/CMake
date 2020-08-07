@@ -314,20 +314,8 @@ void cmMakefile::PrintCommandTrace(const cmListFileFunction& lff) const
   }
 
   std::ostringstream msg;
-  std::vector<std::string> args;
   std::string temp;
   bool expand = this->GetCMakeInstance()->GetTraceExpand();
-
-  args.reserve(lff.Arguments.size());
-  for (cmListFileArgument const& arg : lff.Arguments) {
-    if (expand) {
-      temp = arg.Value;
-      this->ExpandVariablesInString(temp);
-      args.push_back(temp);
-    } else {
-      args.push_back(arg.Value);
-    }
-  }
 
   switch (this->GetCMakeInstance()->GetTraceFormat()) {
     case cmake::TraceFormat::TRACE_JSON_V1: {
@@ -339,8 +327,8 @@ void cmMakefile::PrintCommandTrace(const cmListFileFunction& lff) const
       val["line"] = static_cast<Json::Value::Int64>(lff.Line);
       val["cmd"] = lff.Name.Original;
       val["args"] = Json::Value(Json::arrayValue);
-      for (std::string const& arg : args) {
-        val["args"].append(arg);
+      for (auto const& arg : lff.Arguments) {
+        val["args"].append(arg.Value);
       }
       val["time"] = cmSystemTools::GetTime();
       val["frame"] =
@@ -353,8 +341,8 @@ void cmMakefile::PrintCommandTrace(const cmListFileFunction& lff) const
       msg << full_path << "(" << lff.Line << "):  ";
       msg << lff.Name.Original << "(";
 
-      for (std::string const& arg : args) {
-        msg << arg << " ";
+      for (auto const& arg : lff.Arguments) {
+        msg << arg.Value << " ";
       }
       msg << ")";
       break;
@@ -422,10 +410,10 @@ bool cmMakefile::ExecuteCommand(const cmListFileFunction& lff,
   bool result = true;
 
   // quick return if blocked
-  if (this->IsFunctionBlocked(lff, status)) {
-    // No error.
-    return result;
-  }
+  // if (this->IsFunctionBlocked(lff, status)) {
+  //   // No error.
+  //   return result;
+  // }
 
   if (this->ExecuteCommandCallback) {
     this->ExecuteCommandCallback();
@@ -489,6 +477,33 @@ bool cmMakefile::ExecuteCommand(const cmListFileFunction& lff,
   }
 
   return result;
+}
+
+bool cmMakefile::IsFunctionBlocked(const cmListFileFunctionExpr& expr,
+                                   cmExecutionStatus& status)
+{
+  // if there are no blockers get out of here
+  if (this->FunctionBlockers.empty()) {
+    return false;
+  }
+
+  return this->FunctionBlockers.top()->IsFunctionBlocked(expr, status);
+}
+
+bool cmMakefile::ExecuteCommand(const cmListFileFunctionExpr& expr,
+                                cmExecutionStatus& status)
+{
+  if (this->IsFunctionBlocked(expr, status)) {
+    return true;
+  }
+
+  cmListFileFunction function;
+  if(expr.rpnExpr.Evaluate(*this, function))
+  {
+    return this->ExecuteCommand(function, status);
+  }
+
+  return false;
 }
 
 class cmMakefile::IncludeScope
@@ -738,10 +753,10 @@ void cmMakefile::ReadListFile(cmListFile const& listFile,
   this->MarkVariableAsUsed("CMAKE_CURRENT_LIST_DIR");
 
   // Run the parsed commands.
-  const size_t numberFunctions = listFile.Functions.size();
-  for (size_t i = 0; i < numberFunctions; ++i) {
-    cmExecutionStatus status(*this);
-    this->ExecuteCommand(listFile.Functions[i], status);
+  for(const auto& function: listFile.Functions)
+  {
+    cmExecutionStatus status{*this};
+    this->ExecuteCommand(function, status);
     if (cmSystemTools::GetFatalErrorOccured()) {
       break;
     }
@@ -750,6 +765,7 @@ void cmMakefile::ReadListFile(cmListFile const& listFile,
       break;
     }
   }
+  
   this->CheckForUnusedVariables();
 
   this->AddDefinition("CMAKE_PARENT_LIST_FILE", currentParentFile);
@@ -1527,6 +1543,8 @@ void cmMakefile::PushMacroScope(std::string const& fileName,
   this->PushFunctionBlockerBarrier();
 
   this->PushPolicy(true, pm);
+
+  this->MacroScopes++;
 }
 
 void cmMakefile::PopMacroScope(bool reportError)
@@ -1535,6 +1553,11 @@ void cmMakefile::PopMacroScope(bool reportError)
   this->PopSnapshot(reportError);
 
   this->PopFunctionBlockerBarrier(reportError);
+
+  this->MacroScopes--;
+  if(!this->IsInMacroScope()){
+    this->MacroVars.clear();
+  }
 }
 
 bool cmMakefile::IsRootMakefile() const
@@ -1620,7 +1643,7 @@ void cmMakefile::Configure()
   if (this->IsRootMakefile()) {
     bool hasVersion = false;
     // search for the right policy command
-    for (cmListFileFunction const& func : listFile.Functions) {
+    for (auto const& func : listFile.Functions) {
       if (func.Name.Lower == "cmake_minimum_required") {
         hasVersion = true;
         break;
@@ -1647,7 +1670,7 @@ void cmMakefile::Configure()
         allowedCommands.insert("option");
         allowedCommands.insert("message");
         isProblem = false;
-        for (cmListFileFunction const& func : listFile.Functions) {
+        for (auto const& func : listFile.Functions) {
           if (!cm::contains(allowedCommands, func.Name.Lower)) {
             isProblem = true;
             break;
@@ -1666,7 +1689,7 @@ void cmMakefile::Configure()
     }
     bool hasProject = false;
     // search for a project command
-    for (cmListFileFunction const& func : listFile.Functions) {
+    for (auto const& func : listFile.Functions) {
       if (func.Name.Lower == "project") {
         hasProject = true;
         break;
@@ -1684,13 +1707,18 @@ void cmMakefile::Configure()
         "CMake is pretending there is a \"project(Project)\" command on "
         "the first line.",
         this->Backtrace);
-      cmListFileFunction project;
+      cmListFileFunctionExpr project;
       project.Name.Lower = "project";
-      project.Arguments.emplace_back("Project", cmListFileArgument::Unquoted,
-                                     0);
-      project.Arguments.emplace_back("__CMAKE_INJECTED_PROJECT_COMMAND__",
-                                     cmListFileArgument::Unquoted, 0);
-      listFile.Functions.insert(listFile.Functions.begin(), project);
+      project.rpnExpr.Push<rpn::StringExpression>("project");
+      project.rpnExpr.Push<rpn::StringExpression>("Project");
+      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1);
+      project.rpnExpr.Push<rpn::StringExpression>(
+        "__CMAKE_INJECTED_PROJECT_COMMAND__");
+      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1);
+      project.rpnExpr.Push<rpn::CommandCallExpression>(3);
+
+      listFile.Functions.insert(listFile.Functions.begin(),
+                                std::move(project));
     }
   }
 
@@ -3319,7 +3347,8 @@ bool cmMakefile::IsFunctionBlocked(const cmListFileFunction& lff,
     return false;
   }
 
-  return this->FunctionBlockers.top()->IsFunctionBlocked(lff, status);
+  // return this->FunctionBlockers.top()->IsFunctionBlocked(lff, status);
+  return true;
 }
 
 void cmMakefile::PushFunctionBlockerBarrier()
@@ -5345,4 +5374,30 @@ cmMakefile::MacroPushPop::MacroPushPop(cmMakefile* mf,
 cmMakefile::MacroPushPop::~MacroPushPop()
 {
   this->Makefile->PopMacroScope(this->ReportError);
+}
+
+bool cmMakefile::IsInMacroScope() const noexcept
+{
+  return this->MacroScopes;
+}
+
+void cmMakefile::AddMacroDef(const std::string& name, std::string value)
+{
+  this->MacroVars.insert({name, std::move(value)});
+}
+
+std::string cmMakefile::GetMacroDef(const std::string& name) const
+{
+  const auto search = this->MacroVars.find(name);
+  if(search != std::cend(this->MacroVars))
+  {
+      return search->second;
+  }
+  
+  const auto value = this->GetDef(name);
+  if(value)
+  {
+      return *value;
+  }
+  return {};
 }

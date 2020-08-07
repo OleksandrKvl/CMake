@@ -34,7 +34,7 @@ public:
                   cmExecutionStatus& inStatus) const;
 
   std::vector<std::string> Args;
-  std::vector<cmListFileFunction> Functions;
+  std::vector<cmListFileFunctionExpr> Functions;
   cmPolicies::PolicyMap Policies;
   std::string FilePath;
 };
@@ -45,13 +45,9 @@ bool cmMacroHelperCommand::operator()(
 {
   cmMakefile& makefile = inStatus.GetMakefile();
 
-  // Expand the argument list to the macro.
-  std::vector<std::string> expandedArgs;
-  makefile.ExpandArguments(args, expandedArgs);
-
   // make sure the number of arguments passed is at least the number
   // required by the signature
-  if (expandedArgs.size() < this->Args.size() - 1) {
+  if (args.size() < this->Args.size() - 1) {
     std::string errorMsg =
       cmStrCat("Macro invoked with incorrect arguments for macro named: ",
                this->Args[0]);
@@ -63,63 +59,40 @@ bool cmMacroHelperCommand::operator()(
                                       this->Policies);
 
   // set the value of argc
-  std::string argcDef = std::to_string(expandedArgs.size());
+  std::string argcDef = std::to_string(args.size());
 
-  auto eit = expandedArgs.begin() + (this->Args.size() - 1);
-  std::string expandedArgn = cmJoin(cmMakeRange(eit, expandedArgs.end()), ";");
-  std::string expandedArgv = cmJoin(expandedArgs, ";");
-  std::vector<std::string> variables;
-  variables.reserve(this->Args.size() - 1);
-  for (unsigned int j = 1; j < this->Args.size(); ++j) {
-    variables.push_back("${" + this->Args[j] + "}");
-  }
-  std::vector<std::string> argVs;
-  argVs.reserve(expandedArgs.size());
-  char argvName[60];
-  for (unsigned int j = 0; j < expandedArgs.size(); ++j) {
-    sprintf(argvName, "${ARGV%u}", j);
-    argVs.emplace_back(argvName);
-  }
-  // Invoke all the functions that were collected in the block.
-  cmListFileFunction newLFF;
-  // for each function
-  for (cmListFileFunction const& func : this->Functions) {
-    // Replace the formal arguments and then invoke the command.
-    newLFF.Arguments.clear();
-    newLFF.Arguments.reserve(func.Arguments.size());
-    newLFF.Name = func.Name;
-    newLFF.Line = func.Line;
+  auto getArgValue = [](const auto& arg){
+    return arg.Value;
+  };
+  auto eit = args.begin() + (this->Args.size() - 1);
+  std::string expandedArgn = cmJoin(
+    cmMakeRange(eit, args.end()), ";", getArgValue);
+  std::string expandedArgv = cmJoin(args, ";", getArgValue);
+  
+  // create vars for formal arguments, ARGC, ARGV, ARGN, ARGV#
+  for(std::size_t i{}; i != args.size(); i++)
+  {
+    const auto& argValue = args[i].Value;
+    
+    std::string argvName{"ARGV"};
+    argvName += std::to_string(i);
+    makefile.AddMacroDef(argvName, argValue);
 
-    // for each argument of the current function
-    for (cmListFileArgument const& k : func.Arguments) {
-      cmListFileArgument arg;
-      arg.Value = k.Value;
-      if (k.Delim != cmListFileArgument::Bracket) {
-        // replace formal arguments
-        for (unsigned int j = 0; j < variables.size(); ++j) {
-          cmSystemTools::ReplaceString(arg.Value, variables[j],
-                                       expandedArgs[j]);
-        }
-        // replace argc
-        cmSystemTools::ReplaceString(arg.Value, "${ARGC}", argcDef);
-
-        cmSystemTools::ReplaceString(arg.Value, "${ARGN}", expandedArgn);
-        cmSystemTools::ReplaceString(arg.Value, "${ARGV}", expandedArgv);
-
-        // if the current argument of the current function has ${ARGV in it
-        // then try replacing ARGV values
-        if (arg.Value.find("${ARGV") != std::string::npos) {
-          for (unsigned int t = 0; t < expandedArgs.size(); ++t) {
-            cmSystemTools::ReplaceString(arg.Value, argVs[t], expandedArgs[t]);
-          }
-        }
-      }
-      arg.Delim = k.Delim;
-      arg.Line = k.Line;
-      newLFF.Arguments.push_back(std::move(arg));
+    if(i+1 < this->Args.size())
+    {
+      const auto& argName = this->Args[i + 1];
+      makefile.AddMacroDef(argName, argValue);
     }
+  }
+
+  makefile.AddMacroDef("ARGC", argcDef);
+  makefile.AddMacroDef("ARGV", expandedArgv);
+  makefile.AddMacroDef("ARGN", expandedArgn);
+
+  // Invoke all the functions that were collected in the block.
+  for (auto const& funcExpr : this->Functions) {
     cmExecutionStatus status(makefile);
-    if (!makefile.ExecuteCommand(newLFF, status) || status.GetNestedError()) {
+    if (!makefile.ExecuteCommand(funcExpr, status) || status.GetNestedError()) {
       // The error message should have already included the call stack
       // so we do not need to report an error here.
       macroScope.Quiet();
@@ -128,6 +101,7 @@ bool cmMacroHelperCommand::operator()(
     }
     if (status.GetReturnInvoked()) {
       inStatus.SetReturnInvoked();
+      inStatus.SetReturnValue(status.ReleaseReturnValue());
       return true;
     }
     if (status.GetBreakInvoked()) {
@@ -135,6 +109,7 @@ bool cmMacroHelperCommand::operator()(
       return true;
     }
   }
+
   return true;
 }
 
@@ -147,7 +122,7 @@ public:
   bool ArgumentsMatch(cmListFileFunction const&,
                       cmMakefile& mf) const override;
 
-  bool Replay(std::vector<cmListFileFunction> functions,
+  bool Replay(std::vector<cmListFileFunctionExpr> functions,
               cmExecutionStatus& status) override;
 
   std::vector<std::string> Args;
@@ -156,13 +131,10 @@ public:
 bool cmMacroFunctionBlocker::ArgumentsMatch(cmListFileFunction const& lff,
                                             cmMakefile& mf) const
 {
-  std::vector<std::string> expandedArguments;
-  mf.ExpandArguments(lff.Arguments, expandedArguments,
-                     this->GetStartingContext().FilePath.c_str());
-  return expandedArguments.empty() || expandedArguments[0] == this->Args[0];
+  return lff.Arguments.empty() || lff.Arguments[0].Value == this->Args[0];
 }
 
-bool cmMacroFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
+bool cmMacroFunctionBlocker::Replay(std::vector<cmListFileFunctionExpr> functions,
                                     cmExecutionStatus& status)
 {
   cmMakefile& mf = status.GetMakefile();

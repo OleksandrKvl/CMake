@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "cmStateSnapshot.h"
+#include "cmListFileArgument.h"
+#include "rpn.h"
 
 /** \class cmListFileCache
  * \brief A class to cache list file contents.
@@ -42,30 +44,30 @@ struct cmCommandContext
   }
 };
 
-struct cmListFileArgument
-{
-  enum Delimiter
-  {
-    Unquoted,
-    Quoted,
-    Bracket
-  };
-  cmListFileArgument() = default;
-  cmListFileArgument(std::string v, Delimiter d, long line)
-    : Value(std::move(v))
-    , Delim(d)
-    , Line(line)
-  {
-  }
-  bool operator==(const cmListFileArgument& r) const
-  {
-    return (this->Value == r.Value) && (this->Delim == r.Delim);
-  }
-  bool operator!=(const cmListFileArgument& r) const { return !(*this == r); }
-  std::string Value;
-  Delimiter Delim = Unquoted;
-  long Line = 0;
-};
+// struct cmListFileArgument
+// {
+//   enum Delimiter
+//   {
+//     Unquoted,
+//     Quoted,
+//     Bracket
+//   };
+//   cmListFileArgument() = default;
+//   cmListFileArgument(std::string v, Delimiter d, long line)
+//     : Value(std::move(v))
+//     , Delim(d)
+//     , Line(line)
+//   {
+//   }
+//   bool operator==(const cmListFileArgument& r) const
+//   {
+//     return (this->Value == r.Value) && (this->Delim == r.Delim);
+//   }
+//   bool operator!=(const cmListFileArgument& r) const { return !(*this == r); }
+//   std::string Value;
+//   Delimiter Delim = Unquoted;
+//   long Line = 0;
+// };
 
 class cmListFileContext
 {
@@ -93,6 +95,11 @@ bool operator!=(cmListFileContext const& lhs, cmListFileContext const& rhs);
 struct cmListFileFunction : public cmCommandContext
 {
   std::vector<cmListFileArgument> Arguments;
+};
+
+struct cmListFileFunctionExpr : public cmCommandContext
+{
+  rpn::RPNExpression rpnExpr;
 };
 
 // Represent a backtrace (call stack).  Provide value semantics
@@ -179,6 +186,8 @@ std::vector<BT<std::string>> ExpandListWithBacktrace(
   std::string const& list,
   cmListFileBacktrace const& bt = cmListFileBacktrace());
 
+class CMakeParser;
+
 struct cmListFile
 {
   bool ParseFile(const char* path, cmMessenger* messenger,
@@ -187,7 +196,13 @@ struct cmListFile
   bool ParseString(const char* str, const char* virtual_filename,
                    cmMessenger* messenger, cmListFileBacktrace const& lfbt);
 
-  std::vector<cmListFileFunction> Functions;
+  std::vector<cmListFileFunctionExpr> Functions;
+
+private:
+  bool DoParse(
+    CMakeParser& parser,
+    cmMessenger* messenger,
+    const cmListFileBacktrace& lfbt);
 };
 
 #endif

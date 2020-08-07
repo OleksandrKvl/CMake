@@ -40,6 +40,9 @@ public:
   void SetNestedError() { this->NestedError = true; }
   bool GetNestedError() const { return this->NestedError; }
 
+  void SetReturnValue(std::string value) { this->ReturnValue = std::move(value); }
+  std::string ReleaseReturnValue() { return std::move(this->ReturnValue); }
+
 private:
   cmMakefile& Makefile;
   std::string Error;
@@ -47,6 +50,7 @@ private:
   bool BreakInvoked = false;
   bool ContinueInvoked = false;
   bool NestedError = false;
+  std::string ReturnValue;
 };
 
 #endif

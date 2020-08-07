@@ -12,7 +12,7 @@
 #include "cmMakefile.h"
 #include "cmMessageType.h"
 
-bool cmFunctionBlocker::IsFunctionBlocked(const cmListFileFunction& lff,
+bool cmFunctionBlocker::IsFunctionBlocked(const cmListFileFunctionExpr& lff,
                                           cmExecutionStatus& status)
 {
   if (lff.Name.Lower == this->StartCommandName()) {
@@ -24,7 +24,8 @@ bool cmFunctionBlocker::IsFunctionBlocked(const cmListFileFunction& lff,
       auto self = mf.RemoveFunctionBlocker();
       assert(self.get() == this);
 
-      if (!this->ArgumentsMatch(lff, mf)) {
+      cmListFileFunction function;
+      if(!lff.rpnExpr.Evaluate(mf, function) || !this->ArgumentsMatch(function, mf)){
         cmListFileContext const& lfc = this->GetStartingContext();
         cmListFileContext closingContext =
           cmListFileContext::FromCommandContext(lff, lfc.FilePath);

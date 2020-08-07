@@ -15,6 +15,8 @@
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
 
+#include "cmake_parser.h"
+
 cmCommandContext::cmCommandName& cmCommandContext::cmCommandName::operator=(
   std::string const& name)
 {
@@ -141,7 +143,7 @@ bool cmListFileParser::Parse()
       if (haveNewline) {
         haveNewline = false;
         if (this->ParseFunction(token->text, token->line)) {
-          this->ListFile->Functions.push_back(this->Function);
+          // this->ListFile->Functions.push_back(this->Function);
         } else {
           return false;
         }
@@ -165,6 +167,28 @@ bool cmListFileParser::Parse()
   return true;
 }
 
+bool cmListFile::DoParse(
+  CMakeParser& parser, cmMessenger* messenger, const cmListFileBacktrace& lfbt)
+{
+  const auto error = parser.Parse();
+  auto& ctx = parser.GetCtx();
+  if(!error)
+  {
+    Functions = std::move(ctx.functionList);
+    if(!ctx.message.empty())
+    {
+      messenger->IssueMessage(MessageType::AUTHOR_WARNING, ctx.message, lfbt);
+    }
+  }
+  else
+  {
+    messenger->IssueMessage(MessageType::FATAL_ERROR, ctx.message, lfbt);
+    cmSystemTools::SetFatalErrorOccured();
+  }
+
+  return !error;
+}
+
 bool cmListFile::ParseFile(const char* filename, cmMessenger* messenger,
                            cmListFileBacktrace const& lfbt)
 {
@@ -173,28 +197,25 @@ bool cmListFile::ParseFile(const char* filename, cmMessenger* messenger,
     return false;
   }
 
-  bool parseError = false;
-
-  {
-    cmListFileParser parser(this, lfbt, messenger);
-    parseError = !parser.ParseFile(filename);
-  }
-
-  return !parseError;
+  CMakeParser parser;
+  parser.SetInputFile(filename);
+  return this->DoParse(parser, messenger, lfbt);
 }
 
 bool cmListFile::ParseString(const char* str, const char* virtual_filename,
                              cmMessenger* messenger,
                              const cmListFileBacktrace& lfbt)
 {
-  bool parseError = false;
+  CMakeParser parser;
 
+  std::string virtualFileName;
+  if(virtual_filename)
   {
-    cmListFileParser parser(this, lfbt, messenger);
-    parseError = !parser.ParseString(str, virtual_filename);
+    virtualFileName = virtual_filename;
   }
 
-  return !parseError;
+  parser.SetInputString(str, virtualFileName);
+  return this->DoParse(parser, messenger, lfbt);
 }
 
 bool cmListFileParser::ParseFunction(const char* name, long line)

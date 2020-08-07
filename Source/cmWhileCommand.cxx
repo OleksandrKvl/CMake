@@ -30,7 +30,7 @@ public:
   bool ArgumentsMatch(cmListFileFunction const& lff,
                       cmMakefile& mf) const override;
 
-  bool Replay(std::vector<cmListFileFunction> functions,
+  bool Replay(std::vector<cmListFileFunctionExpr> functions,
               cmExecutionStatus& inStatus) override;
 
   std::vector<cmListFileArgument> Args;
@@ -56,14 +56,19 @@ bool cmWhileFunctionBlocker::ArgumentsMatch(cmListFileFunction const& lff,
   return lff.Arguments.empty() || lff.Arguments == this->Args;
 }
 
-bool cmWhileFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
+bool cmWhileFunctionBlocker::Replay(std::vector<cmListFileFunctionExpr> functions,
                                     cmExecutionStatus& inStatus)
 {
   cmMakefile& mf = inStatus.GetMakefile();
   std::string errorString;
 
   std::vector<cmExpandedCommandArgument> expandedArguments;
-  mf.ExpandArguments(this->Args, expandedArguments);
+  expandedArguments.reserve(this->Args.size());
+  for(const auto& arg: this->Args)
+  {
+      const auto quoted = (arg.Delim != cmListFileArgument::Unquoted);
+      expandedArguments.emplace_back(arg.Value, quoted);
+  }
   MessageType messageType;
 
   cmListFileContext execContext = this->GetStartingContext();
@@ -98,11 +103,12 @@ bool cmWhileFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
     }
 
     // Invoke all the functions that were collected in the block.
-    for (cmListFileFunction const& fn : functions) {
+    for (auto const& fn : functions) {
       cmExecutionStatus status(mf);
       mf.ExecuteCommand(fn, status);
       if (status.GetReturnInvoked()) {
         inStatus.SetReturnInvoked();
+        inStatus.SetReturnValue(status.ReleaseReturnValue());
         return true;
       }
       if (status.GetBreakInvoked()) {
@@ -116,7 +122,12 @@ bool cmWhileFunctionBlocker::Replay(std::vector<cmListFileFunction> functions,
       }
     }
     expandedArguments.clear();
-    mf.ExpandArguments(this->Args, expandedArguments);
+    expandedArguments.reserve(this->Args.size());
+    for(const auto& arg: this->Args)
+    {
+        const auto quoted = (arg.Delim != cmListFileArgument::Unquoted);
+        expandedArguments.emplace_back(arg.Value, quoted);
+    }
     isTrue =
       conditionEvaluator.IsTrue(expandedArguments, errorString, messageType);
   }

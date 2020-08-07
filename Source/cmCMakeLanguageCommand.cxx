@@ -43,43 +43,19 @@ bool cmCMakeLanguageCommand(std::vector<cmListFileArgument> const& args,
 
   bool result = false;
 
-  std::vector<std::string> dispatchExpandedArgs;
-  std::vector<cmListFileArgument> dispatchArgs;
-  dispatchArgs.emplace_back(args[0]);
-  makefile.ExpandArguments(dispatchArgs, dispatchExpandedArgs);
-
-  if (dispatchExpandedArgs.empty()) {
+  if (args.empty()) {
     status.SetError("called with incorrect number of arguments");
     return false;
   }
 
-  if (dispatchExpandedArgs[0] == "CALL") {
-    if ((args.size() == 1 && dispatchExpandedArgs.size() != 2) ||
-        dispatchExpandedArgs.size() > 2) {
+  if (args[0].Value == "CALL") {
+    if(args.size() == 1){
       status.SetError("called with incorrect number of arguments");
       return false;
     }
 
     // First argument is the name of the function to call
-    std::string callCommand;
-    size_t startArg;
-    if (dispatchExpandedArgs.size() == 1) {
-      std::vector<std::string> functionExpandedArg;
-      std::vector<cmListFileArgument> functionArg;
-      functionArg.emplace_back(args[1]);
-      makefile.ExpandArguments(functionArg, functionExpandedArg);
-
-      if (functionExpandedArg.size() != 1) {
-        status.SetError("called with incorrect number of arguments");
-        return false;
-      }
-
-      callCommand = functionExpandedArg[0];
-      startArg = 2;
-    } else {
-      callCommand = dispatchExpandedArgs[1];
-      startArg = 1;
-    }
+    const auto& callCommand = args[1].Value;
 
     // ensure specified command is valid
     // start/end flow control commands are not allowed
@@ -95,28 +71,24 @@ bool cmCMakeLanguageCommand(std::vector<cmListFileArgument> const& args,
     func.Line = context.Line;
 
     // The rest of the arguments are passed to the function call above
-    for (size_t i = startArg; i < args.size(); ++i) {
-      cmListFileArgument lfarg;
-      lfarg.Delim = args[i].Delim;
-      lfarg.Line = context.Line;
-      lfarg.Value = args[i].Value;
-      func.Arguments.emplace_back(lfarg);
+    func.Arguments.reserve(args.size() - 2);
+    for (size_t i = 2; i < args.size(); ++i) {
+      func.Arguments.emplace_back(args[i].Value, args[i].Delim, context.Line);
     }
 
     result = makefile.ExecuteCommand(func, status);
-  } else if (dispatchExpandedArgs[0] == "EVAL") {
-    std::vector<std::string> expandedArgs;
-    makefile.ExpandArguments(args, expandedArgs);
-
-    if (expandedArgs.size() < 2) {
+  } else if (args[0].Value == "EVAL") {
+    if (args.size() < 2) {
       status.SetError("called with incorrect number of arguments");
       return false;
     }
 
-    if (expandedArgs[1] != "CODE") {
+    if (args[1].Value != "CODE") {
       auto code_iter =
-        std::find(expandedArgs.begin() + 2, expandedArgs.end(), "CODE");
-      if (code_iter == expandedArgs.end()) {
+        std::find_if(args.begin() + 2, args.end(), [](const auto& arg){
+          return (arg.Value == "CODE");
+        });
+      if (code_iter == args.end()) {
         status.SetError("called without CODE argument");
       } else {
         status.SetError(
@@ -126,7 +98,14 @@ bool cmCMakeLanguageCommand(std::vector<cmListFileArgument> const& args,
     }
 
     const std::string code =
-      cmJoin(cmMakeRange(expandedArgs.begin() + 2, expandedArgs.end()), " ");
+      cmJoin(
+        cmMakeRange(
+          args.begin() + 2,
+          args.end()), " ",
+          [](const auto& arg){
+            return arg.Value;
+        }
+      );
     result = makefile.ReadListFileAsString(
       code, cmStrCat(context.FilePath, ":", context.Line, ":EVAL"));
   } else {

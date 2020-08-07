@@ -417,10 +417,11 @@ static bool InvokeBuiltinCommand(cmState::BuiltinCommand command,
 {
   cmMakefile& mf = status.GetMakefile();
   std::vector<std::string> expandedArguments;
-  if (!mf.ExpandArguments(args, expandedArguments)) {
-    // There was an error expanding arguments.  It was already
-    // reported, so we can skip this command without error.
-    return true;
+
+  expandedArguments.reserve(args.size());
+  for(const auto& arg: args)
+  {
+    expandedArguments.emplace_back(arg.Value);
   }
   return command(expandedArguments, status);
 }

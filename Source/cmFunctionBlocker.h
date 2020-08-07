@@ -20,7 +20,7 @@ public:
   /**
    * should a function be blocked
    */
-  bool IsFunctionBlocked(cmListFileFunction const& lff,
+  bool IsFunctionBlocked(cmListFileFunctionExpr const& lff,
                          cmExecutionStatus& status);
 
   virtual ~cmFunctionBlocker() = default;
@@ -42,12 +42,13 @@ private:
   virtual bool ArgumentsMatch(cmListFileFunction const& lff,
                               cmMakefile& mf) const = 0;
 
-  virtual bool Replay(std::vector<cmListFileFunction> functions,
+  virtual bool Replay(std::vector<cmListFileFunctionExpr> functions,
                       cmExecutionStatus& status) = 0;
 
 private:
   cmListFileContext StartingContext;
-  std::vector<cmListFileFunction> Functions;
+  // std::vector<cmListFileFunction> Functions;
+  std::vector<cmListFileFunctionExpr> Functions;
   unsigned int ScopeDepth = 1;
 };
 

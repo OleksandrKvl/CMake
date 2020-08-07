@@ -43,7 +43,7 @@ public:
                   cmExecutionStatus& inStatus) const;
 
   std::vector<std::string> Args;
-  std::vector<cmListFileFunction> Functions;
+  std::vector<cmListFileFunctionExpr> Functions;
   cmPolicies::PolicyMap Policies;
   std::string FilePath;
   long Line;
@@ -55,13 +55,9 @@ bool cmFunctionHelperCommand::operator()(
 {
   cmMakefile& makefile = inStatus.GetMakefile();
 
-  // Expand the argument list to the function.
-  std::vector<std::string> expandedArgs;
-  makefile.ExpandArguments(args, expandedArgs);
-
   // make sure the number of arguments passed is at least the number
   // required by the signature
-  if (expandedArgs.size() < this->Args.size() - 1) {
+  if (args.size() < this->Args.size() - 1) {
     auto const errorMsg = cmStrCat(
       "Function invoked with incorrect arguments for function named: ",
       this->Args.front());
@@ -73,25 +69,28 @@ bool cmFunctionHelperCommand::operator()(
                                             this->Policies);
 
   // set the value of argc
-  makefile.AddDefinition(ARGC, std::to_string(expandedArgs.size()));
+  makefile.AddDefinition(ARGC, std::to_string(args.size()));
   makefile.MarkVariableAsUsed(ARGC);
 
   // set the values for ARGV0 ARGV1 ...
-  for (auto t = 0u; t < expandedArgs.size(); ++t) {
+  for (auto t = 0u; t < args.size(); ++t) {
     auto const value = cmStrCat(ARGV, std::to_string(t));
-    makefile.AddDefinition(value, expandedArgs[t]);
+    makefile.AddDefinition(value, args[t].Value);
     makefile.MarkVariableAsUsed(value);
   }
 
   // define the formal arguments
   for (auto j = 1u; j < this->Args.size(); ++j) {
-    makefile.AddDefinition(this->Args[j], expandedArgs[j - 1]);
+    makefile.AddDefinition(this->Args[j], args[j - 1].Value);
   }
 
+  auto getArgValue = [](const auto& arg){
+    return arg.Value;
+  };
   // define ARGV and ARGN
-  auto const argvDef = cmJoin(expandedArgs, ";");
-  auto const eit = expandedArgs.begin() + (this->Args.size() - 1);
-  auto const argnDef = cmJoin(cmMakeRange(eit, expandedArgs.end()), ";");
+  auto const argvDef = cmJoin(args, ";", getArgValue);
+  auto const eit = args.begin() + (this->Args.size() - 1);
+  auto const argnDef = cmJoin(cmMakeRange(eit, args.end()), ";", getArgValue);
   makefile.AddDefinition(ARGV, argvDef);
   makefile.MarkVariableAsUsed(ARGV);
   makefile.AddDefinition(ARGN, argnDef);
@@ -110,7 +109,7 @@ bool cmFunctionHelperCommand::operator()(
 
   // Invoke all the functions that were collected in the block.
   // for each function
-  for (cmListFileFunction const& func : this->Functions) {
+  for (auto const& func : this->Functions) {
     cmExecutionStatus status(makefile);
     if (!makefile.ExecuteCommand(func, status) || status.GetNestedError()) {
       // The error message should have already included the call stack
@@ -120,6 +119,7 @@ bool cmFunctionHelperCommand::operator()(
       return false;
     }
     if (status.GetReturnInvoked()) {
+      inStatus.SetReturnValue(status.ReleaseReturnValue());
       break;
     }
   }
@@ -137,7 +137,7 @@ public:
   bool ArgumentsMatch(cmListFileFunction const&,
                       cmMakefile& mf) const override;
 
-  bool Replay(std::vector<cmListFileFunction> functions,
+  bool Replay(std::vector<cmListFileFunctionExpr> functions,
               cmExecutionStatus& status) override;
 
   std::vector<std::string> Args;
@@ -146,15 +146,12 @@ public:
 bool cmFunctionFunctionBlocker::ArgumentsMatch(cmListFileFunction const& lff,
                                                cmMakefile& mf) const
 {
-  std::vector<std::string> expandedArguments;
-  mf.ExpandArguments(lff.Arguments, expandedArguments,
-                     this->GetStartingContext().FilePath.c_str());
-  return expandedArguments.empty() ||
-    expandedArguments.front() == this->Args.front();
+    return lff.Arguments.empty() ||
+    lff.Arguments.front().Value == this->Args.front();
 }
 
 bool cmFunctionFunctionBlocker::Replay(
-  std::vector<cmListFileFunction> functions, cmExecutionStatus& status)
+  std::vector<cmListFileFunctionExpr> functions, cmExecutionStatus& status)
 {
   cmMakefile& mf = status.GetMakefile();
   // create a new command and add it to cmake
