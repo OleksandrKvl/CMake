@@ -59,7 +59,15 @@
     
     using yyscan_t = void*;
 
-#line 63 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
+#ifdef _WIN32
+    #pragma warning(push)
+    // multiple assignment operators specified
+    #pragma warning(disable : 4522)
+    // switch statement contains 'default' but no 'case' labels
+    #pragma warning(disable : 4065)
+#endif
+
+#line 71 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
 
 # include <cassert>
 # include <cstdlib> // std::abort
@@ -193,7 +201,7 @@
 #endif
 
 namespace yy {
-#line 197 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
+#line 205 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
 
 
 
@@ -1702,16 +1710,20 @@ switch (yykind)
   }
 
 } // yy
-#line 1706 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
+#line 1714 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
 
 
 
 // "%code provides" blocks.
-#line 52 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 60 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
 
     #define YY_DECL yy::parser::symbol_type yylex(yyscan_t yyscanner)
 
-#line 1715 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
+#ifdef _WIN32
+    #pragma warning(pop)
+#endif
+
+#line 1727 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.h"
 
 
 #endif // !YY_YY_HOME_DARK_DOCUMENTS_SRC_CMAKE_BUILD_RELEASE_SOURCE_NEWPARSER_PARSER_H_INCLUDED

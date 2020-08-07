@@ -43,6 +43,14 @@
     };
     
     using yyscan_t = void*;
+
+#ifdef _WIN32
+    #pragma warning(push)
+    // multiple assignment operators specified
+    #pragma warning(disable : 4522)
+    // switch statement contains 'default' but no 'case' labels
+    #pragma warning(disable : 4065)
+#endif
 }
 
 /* Things that are provided to others, location: at the bottom of 
@@ -51,6 +59,10 @@
 %code provides
 {
     #define YY_DECL yy::parser::symbol_type yylex(yyscan_t yyscanner)
+
+#ifdef _WIN32
+    #pragma warning(pop)
+#endif
 }
 
 %lex-param {yyscan_t yyscanner}

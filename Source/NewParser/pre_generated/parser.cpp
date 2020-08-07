@@ -35,7 +35,7 @@
 // private implementation details that can be changed or removed.
 
 // "%code top" blocks.
-#line 63 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 75 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
 
 #line 41 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.cpp"
 
@@ -46,7 +46,7 @@
 
 
 // Unqualified %code blocks.
-#line 69 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 81 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
 
     #include <memory>
     #include <vector>
@@ -681,7 +681,7 @@ namespace yy {
           switch (yyn)
             {
   case 2:
-#line 128 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 140 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
       {
         PushState(BOM, yyscanner);
     }
@@ -689,7 +689,7 @@ namespace yy {
     break;
 
   case 3:
-#line 130 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 142 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                             {
         PopState(yyscanner);
     }
@@ -697,7 +697,7 @@ namespace yy {
     break;
 
   case 6:
-#line 138 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 150 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
               {
         error(yystack_[0].location, "only UTF-8 BOM is supported");
         YYERROR;
@@ -706,7 +706,7 @@ namespace yy {
     break;
 
   case 9:
-#line 150 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 162 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                                 {
         ctx.function.Name = std::move(yystack_[2].value.as < std::string > ());
         ctx.function.Line = yystack_[2].location.begin.line;
@@ -718,7 +718,7 @@ namespace yy {
     break;
 
   case 15:
-#line 171 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 183 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                  {
         ctx.function.rpnExpr.Push<StringExpression>(yystack_[0].value.as < std::string > ());
     }
@@ -726,7 +726,7 @@ namespace yy {
     break;
 
   case 16:
-#line 173 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 185 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                             {
         PushState(ARGUMENTS, yyscanner);
     }
@@ -734,7 +734,7 @@ namespace yy {
     break;
 
   case 17:
-#line 177 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 189 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                 {
         yylhs.value.as < std::string > () = std::move(yystack_[6].value.as < std::string > ());
         ctx.function.rpnExpr.Push<CommandCallExpression>(yystack_[1].value.as < std::size_t > () + 1);
@@ -745,7 +745,7 @@ namespace yy {
     break;
 
   case 18:
-#line 190 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 202 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                               {
         yylhs.value.as < std::size_t > () = 0;
     }
@@ -753,7 +753,7 @@ namespace yy {
     break;
 
   case 19:
-#line 193 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 205 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                                     {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > ();
     }
@@ -761,7 +761,7 @@ namespace yy {
     break;
 
   case 20:
-#line 200 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 212 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                {
         yylhs.value.as < std::size_t > () = 1;
     }
@@ -769,7 +769,7 @@ namespace yy {
     break;
 
   case 21:
-#line 203 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 215 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                               {
         yylhs.value.as < std::size_t > () = yystack_[0].value.as < std::size_t > ();
     }
@@ -777,7 +777,7 @@ namespace yy {
     break;
 
   case 22:
-#line 206 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 218 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                       {
         yylhs.value.as < std::size_t > () = 0;
     }
@@ -785,7 +785,7 @@ namespace yy {
     break;
 
   case 23:
-#line 209 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 221 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                     {
         yylhs.value.as < std::size_t > () = yystack_[2].value.as < std::size_t > () + 1;
     }
@@ -793,7 +793,7 @@ namespace yy {
     break;
 
   case 24:
-#line 212 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 224 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                             {
         yylhs.value.as < std::size_t > () = yystack_[2].value.as < std::size_t > ();
     }
@@ -801,7 +801,7 @@ namespace yy {
     break;
 
   case 25:
-#line 215 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 227 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                                     {
         yylhs.value.as < std::size_t > () = yystack_[2].value.as < std::size_t > () + yystack_[0].value.as < std::size_t > ();
     }
@@ -809,7 +809,7 @@ namespace yy {
     break;
 
   case 26:
-#line 221 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 233 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                  {
         ctx.function.rpnExpr.Push<StringExpression>("(");
         ctx.function.rpnExpr.Push<UnquotedArgExpression>(1);
@@ -818,7 +818,7 @@ namespace yy {
     break;
 
   case 27:
-#line 224 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 236 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                             {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > () + 1 + 1;
         ctx.function.rpnExpr.Push<StringExpression>(")");
@@ -828,7 +828,7 @@ namespace yy {
     break;
 
   case 32:
-#line 242 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 254 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                        {
         ctx.function.rpnExpr.Push<StringExpression>(std::move(yystack_[0].value.as < std::string > ()));
         ctx.function.rpnExpr.Push<BracketArgExpression>();
@@ -837,7 +837,7 @@ namespace yy {
     break;
 
   case 33:
-#line 246 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 258 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                       {
         ctx.function.rpnExpr.Push<QuotedArgExpression>(yystack_[0].value.as < std::size_t > ());
     }
@@ -845,7 +845,7 @@ namespace yy {
     break;
 
   case 34:
-#line 249 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 261 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                         {
         ctx.function.rpnExpr.Push<UnquotedArgExpression>(yystack_[0].value.as < std::size_t > ());
     }
@@ -853,7 +853,7 @@ namespace yy {
     break;
 
   case 35:
-#line 329 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 341 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                 {
         yylhs.value.as < std::size_t > () = 1;
         ctx.function.rpnExpr.Push<StringExpression>("");
@@ -862,7 +862,7 @@ namespace yy {
     break;
 
   case 36:
-#line 333 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 345 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                     {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > ();
     }
@@ -870,7 +870,7 @@ namespace yy {
     break;
 
   case 37:
-#line 339 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 351 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                      {
         yylhs.value.as < std::size_t > () = 1;
     }
@@ -878,7 +878,7 @@ namespace yy {
     break;
 
   case 38:
-#line 342 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 354 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                          {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > () + 1;
     }
@@ -886,7 +886,7 @@ namespace yy {
     break;
 
   case 39:
-#line 348 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 360 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                  {
         ctx.function.rpnExpr.Push<StringExpression>(std::move(yystack_[0].value.as < std::string > ()));
     }
@@ -894,7 +894,7 @@ namespace yy {
     break;
 
   case 41:
-#line 355 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 367 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                        {
         yylhs.value.as < std::size_t > () = 1;
     }
@@ -902,7 +902,7 @@ namespace yy {
     break;
 
   case 42:
-#line 358 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 370 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                          {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > () + 1;
     }
@@ -910,7 +910,7 @@ namespace yy {
     break;
 
   case 43:
-#line 361 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 373 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                         {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > () + 1;
     }
@@ -918,7 +918,7 @@ namespace yy {
     break;
 
   case 44:
-#line 367 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 379 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                    {
         ctx.function.rpnExpr.Push<StringExpression>(std::move(yystack_[0].value.as < std::string > ()));
     }
@@ -926,7 +926,7 @@ namespace yy {
     break;
 
   case 46:
-#line 390 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 402 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                          {
         yylhs.value.as < std::size_t > () = 1;
         // empty reference always evaluates to empty string
@@ -936,7 +936,7 @@ namespace yy {
     break;
 
   case 47:
-#line 395 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 407 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                             {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > ();
         switch(yystack_[2].value.as < ReferenceType > ())
@@ -956,7 +956,7 @@ namespace yy {
     break;
 
   case 48:
-#line 410 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 422 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                             {
         if(yystack_[2].value.as < ReferenceType > () != ReferenceType::Normal)
         {
@@ -972,7 +972,7 @@ namespace yy {
     break;
 
   case 49:
-#line 424 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 436 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                             {
         yylhs.value.as < std::size_t > () = 1;
     }
@@ -980,7 +980,7 @@ namespace yy {
     break;
 
   case 50:
-#line 427 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 439 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                                                {
         yylhs.value.as < std::size_t > () = yystack_[1].value.as < std::size_t > () + 1;
     }
@@ -988,7 +988,7 @@ namespace yy {
     break;
 
   case 51:
-#line 433 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 445 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
                    {
         ctx.function.rpnExpr.Push<StringExpression>(std::move(yystack_[0].value.as < std::string > ()));
     }
@@ -1617,12 +1617,12 @@ namespace yy {
   const short
   parser::yyrline_[] =
   {
-       0,   128,   128,   128,   136,   137,   138,   145,   146,   150,
-     157,   161,   162,   166,   167,   171,   173,   171,   190,   193,
-     200,   203,   206,   209,   212,   215,   221,   221,   232,   233,
-     237,   238,   242,   246,   249,   329,   333,   339,   342,   348,
-     351,   355,   358,   361,   367,   370,   390,   395,   410,   424,
-     427,   433,   436,   440,   441,   445,   446,   450,   451
+       0,   140,   140,   140,   148,   149,   150,   157,   158,   162,
+     169,   173,   174,   178,   179,   183,   185,   183,   202,   205,
+     212,   215,   218,   221,   224,   227,   233,   233,   244,   245,
+     249,   250,   254,   258,   261,   341,   345,   351,   354,   360,
+     363,   367,   370,   373,   379,   382,   402,   407,   422,   436,
+     439,   445,   448,   452,   453,   457,   458,   462,   463
   };
 
   void
@@ -1656,7 +1656,7 @@ namespace yy {
 } // yy
 #line 1658 "/home/dark/Documents/src/cmake-build-Release/Source/NewParser/parser.cpp"
 
-#line 454 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
+#line 466 "/home/dark/Documents/src/cmake/Source/NewParser/parser.y"
 
 
 namespace yy
