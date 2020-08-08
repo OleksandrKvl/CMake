@@ -29,8 +29,6 @@ public:
 
     ~CMakeScanner()
     {
-        yylex_destroy(yyscanner);
-
         if(file)
         {
             fclose(file);
@@ -40,6 +38,8 @@ public:
         {
             yy_delete_buffer(stringBuf, yyscanner);
         }
+
+        yylex_destroy(yyscanner);
     }
 
     void SetDebug(const bool enable)
