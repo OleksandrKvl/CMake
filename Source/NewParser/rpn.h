@@ -77,7 +77,12 @@ private:
 class BracketArgExpression : public CloneableExpression<BracketArgExpression>
 {
 public:
+    explicit BracketArgExpression(std::string str);
+
     bool Evaluate(EvaluationContext& context) const final;
+
+private:
+    const std::string str;
 };
 
 template<typename T>

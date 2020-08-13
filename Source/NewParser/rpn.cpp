@@ -80,9 +80,15 @@ bool StringExpression::Evaluate(EvaluationContext& context) const
     return true;
 }
 
+BracketArgExpression::BracketArgExpression(std::string str)
+    : str{std::move(str)}
+{
+}
+
 bool BracketArgExpression::Evaluate(EvaluationContext& context) const
 {
-    context.results.back().Delim = cmListFileArgument::Bracket;
+    context.results.emplace_back(str, cmListFileArgument::Bracket, 0);
+    context.resultsCount.push_back(1);
     return true;
 }
 

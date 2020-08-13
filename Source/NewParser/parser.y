@@ -252,8 +252,7 @@ zero_or_more_separation
 
 argument
     : BRACKET_ARGUMENT {
-        ctx.function.rpnExpr.Push<StringExpression>(std::move($1));
-        ctx.function.rpnExpr.Push<BracketArgExpression>();
+        ctx.function.rpnExpr.Push<BracketArgExpression>(std::move($1));
     }
     | quoted_argument {
         ctx.function.rpnExpr.Push<QuotedArgExpression>($1);
@@ -304,8 +303,7 @@ argument
             YYERROR;
         }
         ctx.lastArgToken = ParserCtx::ArgToken::BracketArg;
-        ctx.function.rpnExpr.Push<StringExpression>(std::move($1));
-        ctx.function.rpnExpr.Push<BracketArgExpression>();
+        ctx.function.rpnExpr.Push<BracketArgExpression>(std::move($1));
     }
     | quoted_argument {
         if(ctx.lastArgToken == ParserCtx::ArgToken::BracketArg)
