@@ -987,10 +987,6 @@ public:
   int GetRecursionDepth() const;
   void SetRecursionDepth(int recursionDepth);
 
-  bool IsInMacroScope() const noexcept;
-  void AddMacroDef(const std::string& name, std::string value);
-  std::string GetMacroDef(const std::string& name) const;
-
 protected:
   // add link libraries and directories to the target
   void AddGlobalLinkInformation(cmTarget& target);
@@ -1215,9 +1211,6 @@ private:
   std::set<std::string> WarnedCMP0074;
   bool IsSourceFileTryCompile;
   mutable bool SuppressSideEffects;
-  
-  std::size_t MacroScopes{};
-  std::unordered_map<std::string, std::string> MacroVars;
 };
 
 #endif

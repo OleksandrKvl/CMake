@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #include "cmListFileArgument.h"
 
@@ -15,7 +16,18 @@ using results_type = std::vector<cmListFileArgument>;
 using results_iterator = results_type::iterator;
 using const_results_iterator = results_type::const_iterator;
 
+using line_t = decltype(cmListFileArgument::Line);
+
 struct EvaluationContext;
+
+// Since this is used only for macro var replacement hack, we don't need all
+// types for now
+enum class ExprType
+{
+    String,
+    NormalVarRef,
+    Other
+};
 
 class IExpression
 {
@@ -23,15 +35,35 @@ public:
     virtual ~IExpression() = default;
     virtual bool Evaluate(EvaluationContext& context) const = 0;
     virtual IExpression* Clone() const = 0;
+    virtual ExprType GetType() const noexcept = 0;
+    virtual const std::string* GetString() const = 0;
+    virtual std::size_t GetArity() const noexcept = 0;
 };
 
 template<typename T>
-class CloneableExpression : public IExpression
+class ExpressionBase : public IExpression
 {
 public:
     IExpression* Clone() const override
     {
         return new T(static_cast<const T&>(*this));
+    }
+    
+    // These functions are used for a macro vars replacement hack.
+    // They're implemented only partially.
+    ExprType GetType() const noexcept override
+    {
+        return ExprType::Other;
+    }
+
+    const std::string* GetString() const override
+    {
+        return {};
+    }
+
+    std::size_t GetArity() const noexcept override
+    {
+        return 0;
     }
 };
 
@@ -39,6 +71,7 @@ class RPNExpression
 {
 public:
     using expression_ptr = std::unique_ptr<IExpression>;
+    using vars_map = std::unordered_map<std::string, std::string>;
 
     RPNExpression() = default;
     RPNExpression(const RPNExpression& other);
@@ -59,42 +92,48 @@ public:
 
     void Clear() noexcept;
 
+    void ResolveNormalVarRefs(const vars_map& vars);
+
 private:
     std::vector<expression_ptr> rpnExprList;
 };
 
-class StringExpression : public CloneableExpression<StringExpression>
+class StringExpression : public ExpressionBase<StringExpression>
 {
 public:
     explicit StringExpression(std::string str);
 
     bool Evaluate(EvaluationContext& context) const final;
 
+    ExprType GetType() const noexcept final;
+
+    const std::string* GetString() const final;
+
 private:
     const std::string str;
 };
 
-class BracketArgExpression : public CloneableExpression<BracketArgExpression>
+class BracketArgExpression : public ExpressionBase<BracketArgExpression>
 {
 public:
-    explicit BracketArgExpression(std::string str);
+    explicit BracketArgExpression(std::string str, const line_t line);
 
     bool Evaluate(EvaluationContext& context) const final;
 
 private:
     const std::string str;
+    const line_t line{};
 };
 
 template<typename T>
-class ConcatExpression : public CloneableExpression<T>
+class ConcatExpression : public ExpressionBase<T>
 {
 public:
     explicit ConcatExpression(const std::size_t arity);
 
     bool Evaluate(EvaluationContext& context) const override;
 
-protected:
-    std::size_t GetArity() const noexcept;
+    std::size_t GetArity() const noexcept final;
 
 private:
     const std::size_t arity{};
@@ -103,24 +142,30 @@ private:
 class QuotedArgExpression : public ConcatExpression<QuotedArgExpression>
 {
 public:
-    explicit QuotedArgExpression(const std::size_t arity);
+    explicit QuotedArgExpression(const std::size_t arity, const line_t line);
 
     bool Evaluate(EvaluationContext& context) const final;
+
+private:
+    const line_t line{};
 };
 
 class UnquotedArgExpression : public ConcatExpression<UnquotedArgExpression>
 {
 public:
-    explicit UnquotedArgExpression(const std::size_t arity);
+    explicit UnquotedArgExpression(const std::size_t arity, const line_t line);
 
     bool Evaluate(EvaluationContext& context) const final;
+
+private:
+    const line_t line{};
 };
 
 template<typename T>
-class VarRefExpression : public ConcatExpression<VarRefExpression<T>>
+class VarRefExpression : public ConcatExpression<T>
 {
 public:
-    using base_t = ConcatExpression<VarRefExpression<T>>;
+    using base_t = ConcatExpression<T>;
 
     explicit VarRefExpression(const std::size_t arity);
 
@@ -130,10 +175,15 @@ public:
 class NormalVarRefExpression : public VarRefExpression<NormalVarRefExpression>
 {
 public:
-    explicit NormalVarRefExpression(const std::size_t arity);
+    explicit NormalVarRefExpression(const std::size_t arity, const line_t line);
+
+    ExprType GetType() const noexcept final;
 
     std::string GetVariableValue(
         EvaluationContext& context, const std::string& name) const;
+
+private:
+    const line_t line{};
 };
 
 class CacheVarRefExpression : public VarRefExpression<CacheVarRefExpression>
@@ -154,16 +204,16 @@ public:
         EvaluationContext& /*context*/, const std::string& name) const;
 };
 
-class CommandRefExpression : public CloneableExpression<CommandRefExpression>
+class CommandRefExpression : public ExpressionBase<CommandRefExpression>
 {
 public:
     bool Evaluate(EvaluationContext& context) const final;
 };
 
-class CommandCallExpression : public CloneableExpression<CommandCallExpression>
+class CommandCallExpression : public ExpressionBase<CommandCallExpression>
 {
 public:
-    explicit CommandCallExpression(const std::size_t arity);
+    explicit CommandCallExpression(const std::size_t arity, const line_t line);
 
     bool Evaluate(EvaluationContext& context) const final;
 
@@ -176,6 +226,7 @@ public:
 
 private:
     const std::size_t arity{};
+    const line_t line{};
 };
 } // namespace rpn
 
