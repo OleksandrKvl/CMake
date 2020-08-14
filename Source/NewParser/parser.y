@@ -188,7 +188,7 @@ command_invocation
     arguments
     CLOSE_PAREN {
         $$ = std::move($1);
-        ctx.function.rpnExpr.Push<CommandCallExpression>($arguments + 1);
+        ctx.function.rpnExpr.Push<CommandCallExpression>($arguments + 1, @1.begin.line);
 
         PopState(yyscanner);
     }
@@ -232,11 +232,11 @@ argument_list
 parenthesized_arguments
     : OPEN_PAREN {
         ctx.function.rpnExpr.Push<StringExpression>("(");
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1, @1.begin.line);
     } arguments CLOSE_PAREN {
         $$ = $arguments + 1 + 1;
         ctx.function.rpnExpr.Push<StringExpression>(")");
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1, @3.begin.line);
     }
     ;
 
@@ -252,13 +252,14 @@ zero_or_more_separation
 
 argument
     : BRACKET_ARGUMENT {
-        ctx.function.rpnExpr.Push<BracketArgExpression>(std::move($1));
+        ctx.function.rpnExpr.Push<BracketArgExpression>(
+            std::move($1), @1.begin.line);
     }
     | quoted_argument {
-        ctx.function.rpnExpr.Push<QuotedArgExpression>($1);
+        ctx.function.rpnExpr.Push<QuotedArgExpression>($1, @1.begin.line);
     }
     | unquoted_argument {
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>($1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>($1, @1.begin.line);
     }
     ;
 
@@ -286,11 +287,11 @@ close_paren+quoted. It also allows bracket comments in arguments.
     }
     | arguments[old_args] OPEN_PAREN {
         ctx.function.rpnExpr.Push<StringExpression>("(");
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1, @2.begin.line);
     } arguments[new_args] CLOSE_PAREN {
         $$ = $old_args + $new_args + 1 + 1;
         ctx.function.rpnExpr.Push<StringExpression>(")");
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>(1, @4.begin.line);
         ctx.lastArgToken = ParserCtx::ArgToken::UnquotedArg;
     }
     ;
@@ -303,7 +304,8 @@ argument
             YYERROR;
         }
         ctx.lastArgToken = ParserCtx::ArgToken::BracketArg;
-        ctx.function.rpnExpr.Push<BracketArgExpression>(std::move($1));
+        ctx.function.rpnExpr.Push<BracketArgExpression>(
+            std::move($1), @1.begin.line);
     }
     | quoted_argument {
         if(ctx.lastArgToken == ParserCtx::ArgToken::BracketArg)
@@ -317,7 +319,7 @@ argument
         }
         ctx.lastArgToken = ParserCtx::ArgToken::QuotedArg;
 
-        ctx.function.rpnExpr.Push<QuotedArgExpression>($1);
+        ctx.function.rpnExpr.Push<QuotedArgExpression>($1, @1.begin.line);
     }
     | unquoted_argument {
         if(ctx.lastArgToken == ParserCtx::ArgToken::BracketArg)
@@ -331,7 +333,7 @@ argument
         }
         ctx.lastArgToken = ParserCtx::ArgToken::UnquotedArg;
 
-        ctx.function.rpnExpr.Push<UnquotedArgExpression>($1);
+        ctx.function.rpnExpr.Push<UnquotedArgExpression>($1, @1.begin.line);
     }
     ; */
 
@@ -407,7 +409,8 @@ reference
         switch($1)
         {
         case ReferenceType::Normal:
-            ctx.function.rpnExpr.Push<NormalVarRefExpression>($$);
+            ctx.function.rpnExpr.Push<NormalVarRefExpression>(
+                $$, @1.begin.line);
             break;
         case ReferenceType::Cache:
             ctx.function.rpnExpr.Push<CacheVarRefExpression>($$);

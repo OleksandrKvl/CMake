@@ -69,6 +69,8 @@ bool cmMacroHelperCommand::operator()(
     cmMakeRange(eit, args.end()), ";", getArgValue);
   std::string expandedArgv = cmJoin(args, ";", getArgValue);
   
+  rpn::RPNExpression::vars_map macroVars;
+
   // create vars for formal arguments, ARGC, ARGV, ARGN, ARGV#
   for(std::size_t i{}; i != args.size(); i++)
   {
@@ -76,23 +78,25 @@ bool cmMacroHelperCommand::operator()(
     
     std::string argvName{"ARGV"};
     argvName += std::to_string(i);
-    makefile.AddMacroDef(argvName, argValue);
+    macroVars.emplace(argvName, argValue);
 
     if(i+1 < this->Args.size())
     {
       const auto& argName = this->Args[i + 1];
-      makefile.AddMacroDef(argName, argValue);
+      macroVars.emplace(argName, argValue);
     }
   }
 
-  makefile.AddMacroDef("ARGC", argcDef);
-  makefile.AddMacroDef("ARGV", expandedArgv);
-  makefile.AddMacroDef("ARGN", expandedArgn);
+  macroVars.emplace("ARGC", argcDef);
+  macroVars.emplace("ARGV", expandedArgv);
+  macroVars.emplace("ARGN", expandedArgn);
 
   // Invoke all the functions that were collected in the block.
   for (auto const& funcExpr : this->Functions) {
+    auto exprCopy = funcExpr;
+    exprCopy.rpnExpr.ResolveNormalVarRefs(macroVars);
     cmExecutionStatus status(makefile);
-    if (!makefile.ExecuteCommand(funcExpr, status) || status.GetNestedError()) {
+    if (!makefile.ExecuteCommand(exprCopy, status) || status.GetNestedError()) {
       // The error message should have already included the call stack
       // so we do not need to report an error here.
       macroScope.Quiet();

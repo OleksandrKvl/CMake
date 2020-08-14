@@ -1543,8 +1543,6 @@ void cmMakefile::PushMacroScope(std::string const& fileName,
   this->PushFunctionBlockerBarrier();
 
   this->PushPolicy(true, pm);
-
-  this->MacroScopes++;
 }
 
 void cmMakefile::PopMacroScope(bool reportError)
@@ -1553,11 +1551,6 @@ void cmMakefile::PopMacroScope(bool reportError)
   this->PopSnapshot(reportError);
 
   this->PopFunctionBlockerBarrier(reportError);
-
-  this->MacroScopes--;
-  if(!this->IsInMacroScope()){
-    this->MacroVars.clear();
-  }
 }
 
 bool cmMakefile::IsRootMakefile() const
@@ -1711,11 +1704,11 @@ void cmMakefile::Configure()
       project.Name.Lower = "project";
       project.rpnExpr.Push<rpn::StringExpression>("project");
       project.rpnExpr.Push<rpn::StringExpression>("Project");
-      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1);
+      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1, 0);
       project.rpnExpr.Push<rpn::StringExpression>(
         "__CMAKE_INJECTED_PROJECT_COMMAND__");
-      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1);
-      project.rpnExpr.Push<rpn::CommandCallExpression>(3);
+      project.rpnExpr.Push<rpn::UnquotedArgExpression>(1, 0);
+      project.rpnExpr.Push<rpn::CommandCallExpression>(3, 0);
 
       listFile.Functions.insert(listFile.Functions.begin(),
                                 std::move(project));
@@ -5374,30 +5367,4 @@ cmMakefile::MacroPushPop::MacroPushPop(cmMakefile* mf,
 cmMakefile::MacroPushPop::~MacroPushPop()
 {
   this->Makefile->PopMacroScope(this->ReportError);
-}
-
-bool cmMakefile::IsInMacroScope() const noexcept
-{
-  return this->MacroScopes;
-}
-
-void cmMakefile::AddMacroDef(const std::string& name, std::string value)
-{
-  this->MacroVars.insert({name, std::move(value)});
-}
-
-std::string cmMakefile::GetMacroDef(const std::string& name) const
-{
-  const auto search = this->MacroVars.find(name);
-  if(search != std::cend(this->MacroVars))
-  {
-      return search->second;
-  }
-  
-  const auto value = this->GetDef(name);
-  if(value)
-  {
-      return *value;
-  }
-  return {};
 }

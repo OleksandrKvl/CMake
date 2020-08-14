@@ -68,6 +68,48 @@ void RPNExpression::Clear() noexcept
     rpnExprList.clear();
 }
 
+void RPNExpression::ResolveNormalVarRefs(const vars_map& vars)
+{
+    if(rpnExprList.empty())
+    {
+        return;
+    }
+
+    auto b = std::begin(rpnExprList);
+    auto begin = std::begin(rpnExprList) + 1;
+    // std::end() is required here because it's invalidated after erase()
+    for(; begin != std::end(rpnExprList); ++begin)
+    {
+        auto &expr = *begin;
+        if((expr->GetType() == ExprType::NormalVarRef)
+            && (expr->GetArity() == 1))
+        {
+            auto prev = begin - 1;
+            if((*prev)->GetType() == ExprType::String)
+            {
+                assert((*prev)->GetString());
+
+                const auto& varName = *((*prev)->GetString());
+                const auto search = vars.find(varName);
+                if(search != std::cend(vars))
+                {
+                    *prev = std::unique_ptr<StringExpression>(
+                        new StringExpression(search->second));
+
+                    // Effective iteration step will be 2, which is intended.
+                    // Otherwise we can get situation: ${${var}}, if var = var,
+                    // we need to replace it only once.
+                    begin = rpnExprList.erase(begin);
+                    if(begin == std::end(rpnExprList))
+                    {
+                        --begin;
+                    }
+                }
+            }
+        }
+    }
+}
+
 StringExpression::StringExpression(std::string str)
     : str{std::move(str)}
 {
@@ -80,14 +122,24 @@ bool StringExpression::Evaluate(EvaluationContext& context) const
     return true;
 }
 
-BracketArgExpression::BracketArgExpression(std::string str)
-    : str{std::move(str)}
+ExprType StringExpression::GetType() const noexcept
+{
+    return ExprType::String;
+}
+
+const std::string* StringExpression::GetString() const
+{
+    return &str;
+}
+
+BracketArgExpression::BracketArgExpression(std::string str, const line_t line)
+    : str{std::move(str)}, line{line}
 {
 }
 
 bool BracketArgExpression::Evaluate(EvaluationContext& context) const
 {
-    context.results.emplace_back(str, cmListFileArgument::Bracket, 0);
+    context.results.emplace_back(str, cmListFileArgument::Bracket, line);
     context.resultsCount.push_back(1);
     return true;
 }
@@ -144,8 +196,9 @@ std::size_t ConcatExpression<T>::GetArity() const noexcept
     return arity;
 }
 
-QuotedArgExpression::QuotedArgExpression(const std::size_t arity)
-        : ConcatExpression{arity}
+QuotedArgExpression::QuotedArgExpression(
+    const std::size_t arity, const line_t line)
+        : ConcatExpression{arity}, line{line}
 {
 }
 
@@ -153,11 +206,13 @@ bool QuotedArgExpression::Evaluate(EvaluationContext& context) const
 {
     ConcatExpression::Evaluate(context);
     context.results.back().Delim = cmListFileArgument::Quoted;
+    context.results.back().Line = line;
     return true;
 }
 
-UnquotedArgExpression::UnquotedArgExpression(const std::size_t arity)
-    : ConcatExpression{arity}
+UnquotedArgExpression::UnquotedArgExpression(
+    const std::size_t arity, const line_t line)
+    : ConcatExpression{arity}, line{line}
 {
 }
 
@@ -173,7 +228,7 @@ bool UnquotedArgExpression::Evaluate(EvaluationContext& context) const
     context.resultsCount.push_back(expandedArgs.size());
     for (auto& arg : expandedArgs) {
         context.results.emplace_back(
-            std::move(arg), cmListFileArgument::Unquoted, 0);
+            std::move(arg), cmListFileArgument::Unquoted, line);
     }
 
     return true;
@@ -202,18 +257,25 @@ bool VarRefExpression<T>::Evaluate(EvaluationContext& context) const
     return true;
 }
 
-NormalVarRefExpression::NormalVarRefExpression(const std::size_t arity)
-    : VarRefExpression{arity}
+NormalVarRefExpression::NormalVarRefExpression(
+    const std::size_t arity, const line_t line)
+    : VarRefExpression{arity}, line{line}
 {
+}
+
+ExprType NormalVarRefExpression::GetType() const noexcept
+{
+    return ExprType::NormalVarRef;
 }
 
 std::string NormalVarRefExpression::GetVariableValue(
     EvaluationContext& context, const std::string& name) const
 {
-    // handle only single-piece macro vars like ${ARGC}, not ${${ar}${gc}}
-    if(context.makefile.IsInMacroScope() && (GetArity() == 1))
+    static const std::string currentLine{"CMAKE_CURRENT_LIST_LINE"};
+    // CMake also checks filename here
+    if(name == currentLine)
     {
-        return context.makefile.GetMacroDef(name);
+        return std::to_string(line);
     }
 
     const auto value = context.makefile.GetDef(name);
@@ -255,8 +317,8 @@ std::string EnvVarRefExpression::GetVariableValue(
     return value;
 }
 
-CommandCallExpression::CommandCallExpression(const std::size_t arity)
-    : arity{arity}
+CommandCallExpression::CommandCallExpression(const std::size_t arity, const line_t line)
+    : arity{arity}, line{line}
 {
 }
 
@@ -298,6 +360,7 @@ bool CommandCallExpression::CallCommand(
     lff.Arguments.reserve(std::distance(argsBegin, argsEnd));
     
     lff.Name = name.Value;
+    lff.Line = line;
     std::for_each(
         argsBegin, argsEnd, [&lff](const auto& arg) {
             lff.Arguments.emplace_back(arg);
