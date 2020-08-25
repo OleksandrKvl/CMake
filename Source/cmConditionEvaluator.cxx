@@ -454,7 +454,7 @@ bool cmConditionEvaluator::HandleLevel1(cmArgumentList& newArgs, std::string&,
       }
       // does a command exist
       if (this->IsKeyword(keyCOMMAND, *arg) && argP1 != newArgs.end()) {
-        cmState::Command command =
+        auto command =
           this->Makefile.GetState()->GetCommand(argP1->c_str());
         this->HandlePredicate(command != nullptr, reducible, arg, newArgs,
                               argP1, argP2);

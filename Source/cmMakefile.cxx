@@ -454,7 +454,7 @@ bool cmMakefile::ExecuteCommand(const cmListFileFunction& lff,
   }
 
   // Lookup the command prototype.
-  if (cmState::Command command =
+  if (auto command =
         this->GetState()->GetCommandByExactName(lff.Name.Lower)) {
     // Decide whether to invoke the command.
     if (!cmSystemTools::GetFatalErrorOccured()) {
@@ -463,7 +463,7 @@ bool cmMakefile::ExecuteCommand(const cmListFileFunction& lff,
         this->PrintCommandTrace(lff);
       }
       // Try invoking the command.
-      bool invokeSucceeded = command(lff.Arguments, status);
+      bool invokeSucceeded = (*command)(lff.Arguments, status);
       bool hadNestedError = status.GetNestedError();
       if (!invokeSucceeded || hadNestedError) {
         if (!hadNestedError) {

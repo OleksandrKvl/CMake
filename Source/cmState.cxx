@@ -408,7 +408,8 @@ void cmState::AddBuiltinCommand(std::string const& name, Command command)
 {
   assert(name == cmSystemTools::LowerCase(name));
   assert(this->BuiltinCommands.find(name) == this->BuiltinCommands.end());
-  this->BuiltinCommands.emplace(name, std::move(command));
+  this->BuiltinCommands.emplace(
+    name, std::make_shared<Command>(std::move(command)));
 }
 
 static bool InvokeBuiltinCommand(cmState::BuiltinCommand command,
@@ -484,19 +485,19 @@ void cmState::AddScriptedCommand(std::string const& name, Command command)
   std::string sName = cmSystemTools::LowerCase(name);
 
   // if the command already exists, give a new name to the old command.
-  if (Command oldCmd = this->GetCommandByExactName(sName)) {
+  if (auto oldCmd = this->GetCommandByExactName(sName)) {
     this->ScriptedCommands["_" + sName] = oldCmd;
   }
 
-  this->ScriptedCommands[sName] = std::move(command);
+  this->ScriptedCommands[sName] = std::make_shared<Command>(std::move(command));
 }
 
-cmState::Command cmState::GetCommand(std::string const& name) const
+cmState::CommandPtr cmState::GetCommand(std::string const& name) const
 {
   return GetCommandByExactName(cmSystemTools::LowerCase(name));
 }
 
-cmState::Command cmState::GetCommandByExactName(std::string const& name) const
+cmState::CommandPtr cmState::GetCommandByExactName(std::string const& name) const
 {
   auto pos = this->ScriptedCommands.find(name);
   if (pos != this->ScriptedCommands.end()) {

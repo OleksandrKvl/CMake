@@ -147,10 +147,12 @@ public:
   using BuiltinCommand = bool (*)(std::vector<std::string> const&,
                                   cmExecutionStatus&);
 
+  using CommandPtr = std::shared_ptr<Command>;
+
   // Returns a command from its name, case insensitive, or nullptr
-  Command GetCommand(std::string const& name) const;
+  CommandPtr GetCommand(std::string const& name) const;
   // Returns a command from its name, or nullptr
-  Command GetCommandByExactName(std::string const& name) const;
+  CommandPtr GetCommandByExactName(std::string const& name) const;
 
   void AddBuiltinCommand(std::string const& name,
                          std::unique_ptr<cmCommand> command);
@@ -220,8 +222,8 @@ private:
 
   cmPropertyDefinitionMap PropertyDefinitions;
   std::vector<std::string> EnabledLanguages;
-  std::map<std::string, Command> BuiltinCommands;
-  std::map<std::string, Command> ScriptedCommands;
+  std::map<std::string, CommandPtr> BuiltinCommands;
+  std::map<std::string, CommandPtr> ScriptedCommands;
   cmPropertyMap GlobalProperties;
   std::unique_ptr<cmCacheManager> CacheManager;
   std::unique_ptr<cmGlobVerificationManager> GlobVerificationManager;
