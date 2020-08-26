@@ -90,10 +90,12 @@ bool operator<(const cmListFileContext& lhs, const cmListFileContext& rhs);
 bool operator==(cmListFileContext const& lhs, cmListFileContext const& rhs);
 bool operator!=(cmListFileContext const& lhs, cmListFileContext const& rhs);
 
-struct cmListFileFunction : public cmCommandContext
+struct cmListFileFunctionImpl : public cmCommandContext
 {
   std::vector<cmListFileArgument> Arguments;
 };
+
+using cmListFileFunction = std::shared_ptr<cmListFileFunctionImpl>;
 
 // Represent a backtrace (call stack).  Provide value semantics
 // but use efficient reference-counting underneath to avoid copies.

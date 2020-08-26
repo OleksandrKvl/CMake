@@ -200,9 +200,9 @@ bool cmListFile::ParseString(const char* str, const char* virtual_filename,
 bool cmListFileParser::ParseFunction(const char* name, long line)
 {
   // Ininitialize a new function call.
-  this->Function = cmListFileFunction();
-  this->Function.Name = name;
-  this->Function.Line = line;
+  this->Function = std::make_shared<cmListFileFunctionImpl>();
+  this->Function->Name = name;
+  this->Function->Line = line;
 
   // Command name has already been parsed.  Read the left paren.
   cmListFileLexer_Token* token;
@@ -297,7 +297,7 @@ bool cmListFileParser::ParseFunction(const char* name, long line)
 bool cmListFileParser::AddArgument(cmListFileLexer_Token* token,
                                    cmListFileArgument::Delimiter delim)
 {
-  this->Function.Arguments.emplace_back(token->text, delim, token->line);
+  this->Function->Arguments.emplace_back(token->text, delim, token->line);
   if (this->Separation == SeparationOkay) {
     return true;
   }

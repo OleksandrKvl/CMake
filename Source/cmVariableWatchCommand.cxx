@@ -44,20 +44,20 @@ void cmVariableWatchCommandVariableAccessed(const std::string& variable,
 
   std::string stack = *mf->GetProperty("LISTFILE_STACK");
   if (!data->Command.empty()) {
-    cmListFileFunction newLFF;
+    cmListFileFunction newLFF = std::make_shared<cmListFileFunctionImpl>();
     const char* const currentListFile =
       mf->GetDefinition("CMAKE_CURRENT_LIST_FILE");
     const auto fakeLineNo =
       std::numeric_limits<decltype(cmListFileArgument::Line)>::max();
-    newLFF.Arguments = {
+    newLFF->Arguments = {
       { variable, cmListFileArgument::Quoted, fakeLineNo },
       { accessString, cmListFileArgument::Quoted, fakeLineNo },
       { newValue ? newValue : "", cmListFileArgument::Quoted, fakeLineNo },
       { currentListFile, cmListFileArgument::Quoted, fakeLineNo },
       { stack, cmListFileArgument::Quoted, fakeLineNo }
     };
-    newLFF.Name = data->Command;
-    newLFF.Line = fakeLineNo;
+    newLFF->Name = data->Command;
+    newLFF->Line = fakeLineNo;
     cmExecutionStatus status(*makefile);
     if (!makefile->ExecuteCommand(newLFF, status)) {
       cmSystemTools::Error(

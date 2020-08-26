@@ -15,9 +15,9 @@
 bool cmFunctionBlocker::IsFunctionBlocked(const cmListFileFunction& lff,
                                           cmExecutionStatus& status)
 {
-  if (lff.Name.Lower == this->StartCommandName()) {
+  if (lff->Name.Lower == this->StartCommandName()) {
     this->ScopeDepth++;
-  } else if (lff.Name.Lower == this->EndCommandName()) {
+  } else if (lff->Name.Lower == this->EndCommandName()) {
     this->ScopeDepth--;
     if (this->ScopeDepth == 0U) {
       cmMakefile& mf = status.GetMakefile();
@@ -27,7 +27,7 @@ bool cmFunctionBlocker::IsFunctionBlocked(const cmListFileFunction& lff,
       if (!this->ArgumentsMatch(lff, mf)) {
         cmListFileContext const& lfc = this->GetStartingContext();
         cmListFileContext closingContext =
-          cmListFileContext::FromCommandContext(lff, lfc.FilePath);
+          cmListFileContext::FromCommandContext(*lff, lfc.FilePath);
         std::ostringstream e;
         /* clang-format off */
         e << "A logical block opening on the line\n"

@@ -90,9 +90,9 @@ bool cmCMakeLanguageCommand(std::vector<cmListFileArgument> const& args,
       return false;
     }
 
-    cmListFileFunction func;
-    func.Name = callCommand;
-    func.Line = context.Line;
+    cmListFileFunction func = std::make_shared<cmListFileFunctionImpl>();
+    func->Name = callCommand;
+    func->Line = context.Line;
 
     // The rest of the arguments are passed to the function call above
     for (size_t i = startArg; i < args.size(); ++i) {
@@ -100,7 +100,7 @@ bool cmCMakeLanguageCommand(std::vector<cmListFileArgument> const& args,
       lfarg.Delim = args[i].Delim;
       lfarg.Line = context.Line;
       lfarg.Value = args[i].Value;
-      func.Arguments.emplace_back(lfarg);
+      func->Arguments.emplace_back(lfarg);
     }
 
     result = makefile.ExecuteCommand(func, status);

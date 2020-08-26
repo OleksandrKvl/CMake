@@ -12,7 +12,8 @@ class StreamWriter;
 }
 
 class cmListFileContext;
-struct cmListFileFunction;
+struct cmListFileFunctionImpl;
+using cmListFileFunction = std::shared_ptr<cmListFileFunctionImpl>;
 
 class cmMakefileProfilingData
 {

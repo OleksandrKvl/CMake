@@ -420,10 +420,10 @@ int CCONV cmExecuteCommand(void* arg, const char* name, int numArgs,
 {
   cmMakefile* mf = static_cast<cmMakefile*>(arg);
   cmListFileFunction lff;
-  lff.Name = name;
+  lff->Name = name;
   for (int i = 0; i < numArgs; ++i) {
     // Assume all arguments are quoted.
-    lff.Arguments.emplace_back(args[i], cmListFileArgument::Quoted, 0);
+    lff->Arguments.emplace_back(args[i], cmListFileArgument::Quoted, 0);
   }
   cmExecutionStatus status(*mf);
   return mf->ExecuteCommand(lff, status);
