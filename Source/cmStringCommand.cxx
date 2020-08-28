@@ -533,15 +533,15 @@ bool HandleAppendCommand(std::vector<std::string> const& args,
     return true;
   }
 
-  const std::string& variable = args[1];
+  const auto& variableName = args[1];
 
-  std::string value;
-  const char* oldValue = status.GetMakefile().GetDefinition(variable);
+  cm::string_view oldView;
+  const char* oldValue = status.GetMakefile().GetDefinition(variableName);
   if (oldValue) {
-    value = oldValue;
+    oldView = cm::string_view{oldValue};
   }
-  value += cmJoin(cmMakeRange(args).advance(2), std::string());
-  status.GetMakefile().AddDefinition(variable, value);
+  const auto newValue = cmJoin(cmMakeRange(args).advance(2), {}, oldView);
+  status.GetMakefile().AddDefinition(variableName, newValue);
   return true;
 }
 
