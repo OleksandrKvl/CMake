@@ -952,6 +952,7 @@ public:
   const char* GetDefineFlagsCMP0059() const;
 
   std::string GetExecutionFilePath() const;
+  const std::string& GetExecutionFilePathRef() const;
 
   void EnforceDirectoryLevelRules() const;
 

@@ -35,6 +35,7 @@ public:
   void SetListFile(std::string const& listfile);
 
   std::string GetExecutionListFile() const;
+  const std::string& GetExecutionListFileRef() const;
 
   std::vector<cmStateSnapshot> GetChildren();
 

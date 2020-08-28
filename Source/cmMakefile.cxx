@@ -3390,12 +3390,19 @@ std::string cmMakefile::GetExecutionFilePath() const
   return this->StateSnapshot.GetExecutionListFile();
 }
 
+const std::string& cmMakefile::GetExecutionFilePathRef() const
+{
+  assert(this->StateSnapshot.IsValid());
+  return this->StateSnapshot.GetExecutionListFileRef();
+}
+
 bool cmMakefile::ExpandArguments(std::vector<cmListFileArgument> const& inArgs,
                                  std::vector<std::string>& outArgs,
                                  const char* filename) const
 {
-  std::string efp = this->GetExecutionFilePath();
+  // std::string efp = this->GetExecutionFilePath();
   if (!filename) {
+    const auto& efp = this->GetExecutionFilePathRef();
     filename = efp.c_str();
   }
   std::string value;
@@ -3426,8 +3433,9 @@ bool cmMakefile::ExpandArguments(
   std::vector<cmListFileArgument> const& inArgs,
   std::vector<cmExpandedCommandArgument>& outArgs, const char* filename) const
 {
-  std::string efp = this->GetExecutionFilePath();
+  // std::string efp = this->GetExecutionFilePath();
   if (!filename) {
+    const auto& efp = this->GetExecutionFilePathRef();
     filename = efp.c_str();
   }
   std::string value;

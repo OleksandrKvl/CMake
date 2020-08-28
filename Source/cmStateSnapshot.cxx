@@ -58,6 +58,11 @@ std::string cmStateSnapshot::GetExecutionListFile() const
   return *this->Position->ExecutionListFile;
 }
 
+const std::string& cmStateSnapshot::GetExecutionListFileRef() const
+{
+  return *this->Position->ExecutionListFile;
+}
+
 bool cmStateSnapshot::IsValid() const
 {
   return this->State && this->Position.IsValid()
